@@ -33,7 +33,7 @@ object Main extends App {
 
   val slowDuration = 200
 
-  class Background(index: Int) extends Thread(s"Background$index") {
+  object Background extends Thread("Background") {
     private val rng = new Random()
 
     private var backgroundState = List.fill[Quick](200)(Quick()).par
@@ -59,31 +59,16 @@ object Main extends App {
     setDaemon(true)
   }
 
-  val nBackground = 1
-  val backgrounds = List.tabulate(nBackground)(new Background(_))
 
   object Foreground {
     val rng = new Random()
 
     def run(): Unit = {
-      val state = List.fill[Quick](10)(Quick())
-
-      (0 until 5000).foldLeft(state) {(state,i) =>
-        val innerScopeBeg = System.currentTimeMillis()
-        val result = state.map(_.simulate)
-        val innerScopeEnd = System.currentTimeMillis()
-        val duration = innerScopeEnd - innerScopeBeg
-        if (duration >= slowDuration) {
-          println(s"Suspicious duration $duration")
-        }
-        hotSleep(2 + rng.nextInt(2))
-        result
-      }
-
+      hotSleep(20000)
     }
   }
 
-  backgrounds.foreach(_.start())
+  Background.start()
   Foreground.run()
 
 }
