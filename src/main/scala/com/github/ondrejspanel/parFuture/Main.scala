@@ -1,10 +1,8 @@
 package com.github.ondrejspanel.parFuture
 
 import scala.annotation.tailrec
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
-import scala.util.Random
 
 object Main extends App {
 
@@ -14,43 +12,31 @@ object Main extends App {
 
   }
 
-  object Quick {
-    val rng = new Random()
-  }
-
-  case class Quick() {
-    def simulate: Quick = {
-      hotSleep(1 + Quick.rng.nextInt(2))
-      if (Quick.rng.nextInt(500) < 1) {
-        val sleep = slowDuration + Quick.rng.nextInt(10)
-        Future {
-          hotSleep(sleep)
-        }
-      }
-      this
-    }
-  }
-
-  val slowDuration = 200
-
   object Background extends Thread("Background") {
-    private val rng = new Random()
 
-    private var backgroundState = List.fill[Quick](200)(Quick()).par
+    private val stateCount = 200
+    private val state = (0 until stateCount).par
 
     @tailrec
     final override def run(): Unit = {
 
-      backgroundState = (0 until 10000).foldLeft(backgroundState) { (state, i) =>
-        hotSleep(15 + rng.nextInt(15))
+      (0 until 10000).foreach { i =>
+        hotSleep(25)
         val innerScopeBeg = System.currentTimeMillis()
-        val result = state.map(_.simulate)
+        state.foreach { x =>
+          hotSleep(2)
+          if ((x + i * stateCount) % 500 == 0) {
+            Future {
+              hotSleep(205)
+            }
+          }
+
+        }
         val innerScopeEnd = System.currentTimeMillis()
         val duration = innerScopeEnd - innerScopeBeg
-        if (duration >= slowDuration) {
+        if (duration >= 200) {
           println(s"Suspicious background duration $duration")
         }
-        result
       }
 
       run()
@@ -61,10 +47,9 @@ object Main extends App {
 
 
   object Foreground {
-    val rng = new Random()
 
     def run(): Unit = {
-      hotSleep(20000)
+      Thread.sleep(60000)
     }
   }
 
