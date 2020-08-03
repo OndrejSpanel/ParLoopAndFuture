@@ -21,17 +21,25 @@ object Main extends App {
     final override def run(): Unit = {
 
       (0 until 10000).foreach { i =>
-        hotSleep(25)
+        hotSleep(100)
         val innerScopeBeg = System.currentTimeMillis()
-        state.foreach { x =>
-          hotSleep(2)
-          if ((x + i * stateCount) % 500 == 0) {
-            Future {
-              hotSleep(205)
+
+        Future {
+          state.seq.foreach { x =>
+            hotSleep(1)
+            if ((x + i * stateCount) % 500 == 0) {
+              Future {
+                hotSleep(205)
+              }
             }
           }
-
         }
+
+        state.foreach { x =>
+          hotSleep(2)
+        }
+
+
         val innerScopeEnd = System.currentTimeMillis()
         val duration = innerScopeEnd - innerScopeBeg
         if (duration >= 200) {
