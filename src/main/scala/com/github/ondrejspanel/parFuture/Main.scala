@@ -40,9 +40,9 @@ object Main extends App {
 
     @tailrec
     final override def run(): Unit = {
-      hotSleep(rng.nextInt(slowDuration + 10) + slowDuration)
 
       backgroundState = (0 until 10000).foldLeft(backgroundState) { (state, i) =>
+        hotSleep(15 + rng.nextInt(15))
         val innerScopeBeg = System.currentTimeMillis()
         val result = state.map(_.simulate)
         val innerScopeEnd = System.currentTimeMillis()
@@ -53,7 +53,6 @@ object Main extends App {
         result
       }
 
-      hotSleep(5 + rng.nextInt(5))
       run()
     }
 
