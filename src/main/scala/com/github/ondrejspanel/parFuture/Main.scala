@@ -21,6 +21,12 @@ object Main extends App {
   case class Quick() {
     def simulate: Quick = {
       hotSleep(1 + Quick.rng.nextInt(2))
+      if (Quick.rng.nextInt(500) < 1) {
+        val sleep = slowDuration + Quick.rng.nextInt(10)
+        Future {
+          hotSleep(sleep)
+        }
+      }
       this
     }
   }
@@ -28,16 +34,13 @@ object Main extends App {
   val slowDuration = 200
 
   class Background(index: Int) extends Thread(s"Background$index") {
-    val rng = new Random()
+    private val rng = new Random()
 
-    var backgroundState = List.fill[Quick](100)(Quick()).par
+    private var backgroundState = List.fill[Quick](200)(Quick()).par
 
     @tailrec
     final override def run(): Unit = {
-      val f = Future {
-        hotSleep(slowDuration + rng.nextInt(10))
-      }
-      hotSleep(rng.nextInt(slowDuration + 10) + slowDuration / 4)
+      hotSleep(rng.nextInt(slowDuration + 10) + slowDuration)
 
       backgroundState = (0 until 10000).foldLeft(backgroundState) { (state, i) =>
         val innerScopeBeg = System.currentTimeMillis()
@@ -50,17 +53,19 @@ object Main extends App {
         result
       }
 
-      Await.result(f, Duration.Inf)
+      hotSleep(5 + rng.nextInt(5))
       run()
     }
 
     setDaemon(true)
   }
 
-  val nBackground = 6
+  val nBackground = 1
   val backgrounds = List.tabulate(nBackground)(new Background(_))
 
   object Foreground {
+    val rng = new Random()
+
     def run(): Unit = {
       val state = List.fill[Quick](10)(Quick())
 
@@ -72,6 +77,7 @@ object Main extends App {
         if (duration >= slowDuration) {
           println(s"Suspicious duration $duration")
         }
+        hotSleep(2 + rng.nextInt(2))
         result
       }
 
