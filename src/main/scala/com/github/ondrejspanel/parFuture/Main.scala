@@ -3,7 +3,7 @@ package com.github.ondrejspanel.parFuture
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
-object Main extends App {
+object Main {
 
 
   def hotSleep(ms: Int): Unit = {
@@ -12,7 +12,7 @@ object Main extends App {
 
   }
 
-  def run(): Unit = {
+  def main(args: Array[String]): Unit = {
     val stateCount = 200
     val state = (0 until stateCount).par
 
@@ -41,7 +41,5 @@ object Main extends App {
       }
     }
   }
-
-  run()
 
 }
