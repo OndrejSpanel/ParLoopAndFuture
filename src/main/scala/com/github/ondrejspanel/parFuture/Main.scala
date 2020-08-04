@@ -1,10 +1,10 @@
 package com.github.ondrejspanel.parFuture
 
-import scala.annotation.tailrec
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object Main extends App {
+
 
   def hotSleep(ms: Int): Unit = {
     val now = System.currentTimeMillis()
@@ -12,48 +12,36 @@ object Main extends App {
 
   }
 
-  object Background extends Thread("Background") {
+  def run(): Unit = {
+    val stateCount = 200
+    val state = (0 until stateCount).par
 
-    private val stateCount = 200
-    private val state = (0 until stateCount).par
+    val triggerIssue = true
 
-    @tailrec
-    final override def run(): Unit = {
-
-      (0 until 10000).foreach { i =>
-        hotSleep(25)
-        val innerScopeBeg = System.currentTimeMillis()
-        state.foreach { x =>
-          hotSleep(2)
-          if ((x + i * stateCount) % 500 == 0) {
-            Future {
-              hotSleep(205)
-            }
-          }
-
-        }
-        val innerScopeEnd = System.currentTimeMillis()
-        val duration = innerScopeEnd - innerScopeBeg
-        if (duration >= 200) {
-          println(s"Suspicious background duration $duration")
+    (0 until 1000).foreach { i =>
+      hotSleep(25)
+      val innerScopeBeg = System.currentTimeMillis()
+      if (!triggerIssue) {
+        Future {
+          hotSleep(205)
         }
       }
-
-      run()
+      state.foreach { x =>
+        if (triggerIssue && x == 0) {
+          Future {
+            hotSleep(205)
+          }
+        }
+        hotSleep(2)
+      }
+      val innerScopeEnd = System.currentTimeMillis()
+      val duration = innerScopeEnd - innerScopeBeg
+      if (duration >= 200) {
+        println(s"Suspicious background duration $duration")
+      }
     }
-
-    setDaemon(true)
   }
 
-
-  object Foreground {
-
-    def run(): Unit = {
-      Thread.sleep(60000)
-    }
-  }
-
-  Background.start()
-  Foreground.run()
+  run()
 
 }
