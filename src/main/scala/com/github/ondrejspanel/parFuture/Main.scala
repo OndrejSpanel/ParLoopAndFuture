@@ -13,7 +13,7 @@ object Main {
   }
 
   def main(args: Array[String]): Unit = {
-    val stateCount = 200
+    val stateCount = 50
     val state = (0 until stateCount).par
 
     val triggerIssue = true
