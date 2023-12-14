@@ -1,7 +1,9 @@
 package com.github.ondrejspanel.parFuture
 
-import java.util.concurrent.{Executors, ThreadFactory}
+import java.util.concurrent.{ConcurrentLinkedQueue, Executors, Semaphore, ThreadFactory}
+import scala.annotation.{tailrec, unused}
 import scala.concurrent._
+import scala.util.chaining._
 
 object CustomEC {
   // many new Intel CPUs report plenty of cores, as they include "economical" cores as well
@@ -17,7 +19,33 @@ object CustomEC {
       thread
     }
   }
-  val threadPool = Executors.newFixedThreadPool(scala.collection.parallel.availableProcessors min maxCPUs, daemonThreadFactory)
-  final lazy implicit val custom: ExecutionContextExecutor = ExecutionContext.fromExecutor(threadPool)
+  val threadCount = scala.collection.parallel.availableProcessors min maxCPUs
+
+  final implicit object custom extends ExecutionContextExecutor {
+    private val taskQueue = new ConcurrentLinkedQueue[Runnable]()
+    private val taskCount = new Semaphore(0, false)
+
+    private object SingleThread extends Runnable {
+      override def run(): Unit = {
+        @tailrec
+        def recurse(): Unit = {
+          taskCount.acquire(1)
+          val task = taskQueue.poll()
+          task.run()
+          recurse()
+        }
+        recurse()
+      }
+    }
+
+    @unused // we only want the threads to be created, but having the variable around can be usefull for debugging
+    private val threads = Array.fill(threadCount)(daemonThreadFactory.newThread(SingleThread).tap(_.start))
+
+    override def reportFailure(cause: Throwable): Unit = ExecutionContext.defaultReporter(cause)
+    override def execute(command: Runnable): Unit = {
+      taskQueue.add(command)
+      taskCount.release()
+    }
+  }
 
 }
