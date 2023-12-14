@@ -1,6 +1,6 @@
 package com.github.ondrejspanel.parFuture
 
-import java.util.concurrent.{ConcurrentLinkedQueue, Executors, Semaphore, ThreadFactory}
+import java.util.concurrent.{ConcurrentLinkedQueue, Executors, LinkedBlockingDeque, LinkedBlockingQueue, Semaphore, ThreadFactory}
 import scala.annotation.{tailrec, unused}
 import scala.concurrent._
 import scala.util.chaining._
@@ -22,15 +22,13 @@ object CustomEC {
   val threadCount = scala.collection.parallel.availableProcessors min maxCPUs
 
   final implicit object custom extends ExecutionContextExecutor {
-    private val taskQueue = new ConcurrentLinkedQueue[Runnable]()
-    private val taskCount = new Semaphore(0, false)
+    private val taskQueue = new LinkedBlockingQueue[Runnable]()
 
     private object SingleThread extends Runnable {
       override def run(): Unit = {
         @tailrec
         def recurse(): Unit = {
-          taskCount.acquire(1)
-          val task = taskQueue.poll()
+          val task = taskQueue.take()
           task.run()
           recurse()
         }
@@ -44,7 +42,6 @@ object CustomEC {
     override def reportFailure(cause: Throwable): Unit = ExecutionContext.defaultReporter(cause)
     override def execute(command: Runnable): Unit = {
       taskQueue.add(command)
-      taskCount.release()
     }
   }
 
