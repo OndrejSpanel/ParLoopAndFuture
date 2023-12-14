@@ -2,6 +2,7 @@ package com.github.ondrejspanel.parFuture
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.collection.parallel.CollectionConverters._
 
 object Main {
 
