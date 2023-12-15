@@ -1,11 +1,11 @@
 package com.github.ondrejspanel.parFuture
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.parallel.CollectionConverters._
-import scala.collection.parallel.ExecutionContextTaskSupport
+
+import MyPar._
 
 object Main {
-  val useCustomEC = true
+  val useCustomEC = false
 
   implicit val ec: ExecutionContext = if (useCustomEC) CustomEC.custom else ExecutionContext.global
 
@@ -19,29 +19,30 @@ object Main {
     val stateCount = 50
     val state = (0 until stateCount).par
 
-    state.tasksupport = new ExecutionContextTaskSupport(ec)
+    val shortTime = 2
+    val longTime = 200
 
     val triggerIssue = true
     val start = System.currentTimeMillis()
-    (0 until 100).foreach { i =>
+    (0 until 1000).foreach { i =>
       hotSleep(25)
       val innerScopeBeg = System.currentTimeMillis()
       if (!triggerIssue) {
         Future {
-          hotSleep(105)
+          hotSleep(longTime + 5)
         }
       }
       state.foreach { x =>
-        if (triggerIssue && x == 0) {
+        if (triggerIssue && x == i % 10) {
           Future {
-            hotSleep(105)
+            hotSleep(longTime + 5)
           }
         }
-        hotSleep(1)
+        hotSleep(shortTime)
       }
       val innerScopeEnd = System.currentTimeMillis()
       val duration = innerScopeEnd - innerScopeBeg
-      if (duration >= 100) {
+      if (duration >= longTime) {
         println(s"Suspicious background duration $duration")
       }
     }
