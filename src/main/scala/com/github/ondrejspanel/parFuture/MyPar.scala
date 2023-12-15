@@ -16,6 +16,7 @@ object MyPar {
     val taskIndex = new AtomicInteger(0)
     val tasksDone = new AtomicInteger(0)
     coll.copyToArray(source)
+    taskIndex.set(0) // write barrier after copyToArray
 
     @tailrec
     def worker(): Boolean = {
