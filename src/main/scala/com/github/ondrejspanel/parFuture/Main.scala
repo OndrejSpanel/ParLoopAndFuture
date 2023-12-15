@@ -1,13 +1,10 @@
 package com.github.ondrejspanel.parFuture
 
-import scala.concurrent.{ExecutionContext, Future}
-import scala.collection.parallel.CollectionConverters._
-import scala.collection.parallel.ExecutionContextTaskSupport
+import scala.concurrent.{Await, ExecutionContext, Future}
+import scala.concurrent.duration.Duration
 
 object Main {
-  val useCustomEC = true
-
-  implicit val ec: ExecutionContext = if (useCustomEC) CustomEC.custom else ExecutionContext.global
+  implicit val ec: ExecutionContext = ExecutionContext.global
 
   def hotSleep(ms: Int): Unit = {
     val now = System.currentTimeMillis()
@@ -17,28 +14,32 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     val stateCount = 50
-    val state = (0 until stateCount).par
+    val state = 0 until stateCount
 
-    state.tasksupport = new ExecutionContextTaskSupport(ec)
+    val shortTime = 2
+    val longTime = 205
 
     val triggerIssue = true
     val start = System.currentTimeMillis()
-    (0 until 100).foreach { i =>
+    (0 until 1000).foreach { i =>
       hotSleep(25)
       val innerScopeBeg = System.currentTimeMillis()
       if (!triggerIssue) {
         Future {
-          hotSleep(105)
+          hotSleep(longTime)
         }
       }
-      state.foreach { x =>
+      val futures = state.map { x =>
         if (triggerIssue && x == 0) {
           Future {
-            hotSleep(105)
+            hotSleep(longTime)
           }
         }
-        hotSleep(1)
+        Future {
+          hotSleep(shortTime)
+        }
       }
+      Await.result(Future.sequence(futures), Duration.Inf)
       val innerScopeEnd = System.currentTimeMillis()
       val duration = innerScopeEnd - innerScopeBeg
       if (duration >= 100) {
